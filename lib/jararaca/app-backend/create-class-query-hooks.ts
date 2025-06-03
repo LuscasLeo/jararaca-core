@@ -114,7 +114,7 @@ export function createClassInfiniteQueryHooks<
     "queryKey" | "queryFn" | "getNextPageParam" | "initialPageParam"
   >;
   type PrefixedMethods = {
-    [K in keyof Methods as `use${Capitalize<string & K>}`]: InstanceType<ClassT>[K] extends (
+    [K in keyof Methods as `use${Capitalize<string & K>}Infinite`]: InstanceType<ClassT>[K] extends (
       ...args: infer Args
     ) => Promise<infer Result>
       ? Args extends []
@@ -152,7 +152,7 @@ export function createClassInfiniteQueryHooks<
       throw new Error("Method " + methodName + " is not a function");
 
     const hookName =
-      `use${methodName.charAt(0).toUpperCase() + methodName.slice(1)}` as keyof PrefixedMethods;
+      `use${methodName.charAt(0).toUpperCase() + methodName.slice(1)}Infinite` as keyof PrefixedMethods;
     hooks[hookName] = function useQ(...args: any[]) {
       const cf = useControllerFactory(classType);
       const preKeys = useQueryKeys();
