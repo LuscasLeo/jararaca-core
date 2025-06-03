@@ -1,11 +1,11 @@
 import {
+  InfiniteData,
+  useInfiniteQuery,
+  UseInfiniteQueryOptions,
+  UseInfiniteQueryResult,
   useQuery,
   UseQueryOptions,
   UseQueryResult,
-  UseInfiniteQueryResult,
-  UseInfiniteQueryOptions,
-  useInfiniteQuery,
-  InfiniteData,
 } from "@tanstack/react-query";
 
 import { useControllerFactory } from "./abc";
@@ -69,12 +69,12 @@ export function createClassQueryHooks<
       const [options, finalArgs] =
         args.length > methodParamLength
           ? [args.pop(), args]
-          : args.length === methodParamLength
+          : args.length === methodParamLength && !Array.isArray(args[0])
             ? [{}, args]
             : [{}, args[0]];
 
       return useQuery({
-        queryKey: [...preKeys, classType.name, methodName, finalArgs],
+        queryKey: [classType.name, methodName, ...finalArgs, ...preKeys],
         queryFn: async ({ signal }) => {
           const result = await cf.create({ signal })[methodName](...finalArgs);
           return result;
@@ -225,6 +225,23 @@ export function pageNumberManipulator<FuncArgs, Result>(
   };
 }
 
+export const getClassMethodQueryKey = <
+  ClassT extends new (...args: any[]) => any,
+  MethodName extends keyof InstanceType<ClassT>,
+>(
+  classType: ClassT,
+  methodName: MethodName,
+): unknown[] => {
+  return [classType.name, methodName];
+};
+
+export function useClassBaseQueryKey<
+  ClassT extends new (...args: any[]) => any,
+  MethodName extends keyof InstanceType<ClassT>,
+>(classType: ClassT, methodName: MethodName): unknown[] {
+  const preKeys = useQueryKeys();
+  return [...preKeys, classType.name, methodName];
+}
 export function useClassQueryKey<
   ClassT extends new (...args: any[]) => any,
   MethodName extends keyof InstanceType<ClassT>,
@@ -234,7 +251,7 @@ export function useClassQueryKey<
   ...args: Parameters<InstanceType<ClassT>[MethodName]>
 ): unknown[] {
   const preKeys = useQueryKeys();
-  return [...preKeys, classType.name, methodName, args];
+  return [...preKeys, classType.name, methodName, ...args];
 }
 
 export function deepFreeze<T>(value: T): T {
