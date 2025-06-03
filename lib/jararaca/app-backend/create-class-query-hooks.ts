@@ -206,6 +206,22 @@ export function paginationModelManipulator<
   );
 }
 
+export function paginationModelByFirstArgPaginationFilter<
+  RestArgs extends Array<any>,
+  FilterT extends PaginatedFilter,
+  T,
+  FuncArgs extends [FilterT, ...RestArgs],
+>(): Manipulator<FuncArgs, Paginated<T>, number> {
+  return pageNumberManipulator(
+    (args) => args[0].pageSize || 10,
+    (result) => result.total,
+    (args, pageParam) => {
+      const [filter, ...rest] = args;
+      return [{ ...filter, page: pageParam }, ...rest] as FuncArgs;
+    },
+  );
+}
+
 export function pageNumberManipulator<FuncArgs, Result>(
   getPageSize: (args: FuncArgs) => number,
   getTotal: (result: Result) => number,
