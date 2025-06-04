@@ -74,7 +74,7 @@ export function createClassQueryHooks<
             : [{}, args[0]];
 
       return useQuery({
-        queryKey: [classType.name, methodName, ...finalArgs, ...preKeys],
+        queryKey: [classType.name, methodName, ...preKeys, ...finalArgs],
         queryFn: async ({ signal }) => {
           const result = await cf.create({ signal })[methodName](...finalArgs);
           return result;
@@ -98,6 +98,8 @@ export type Manipulator<Args, ResultType, ParamType> = {
   ) => ParamType | undefined | null;
   initialPageParam: ParamType;
 };
+
+const INFINIE_KEY = "infinite";
 
 export function createClassInfiniteQueryHooks<
   ClassT extends new (...args: any[]) => any,
@@ -160,7 +162,13 @@ export function createClassInfiniteQueryHooks<
       const options = diffArgs > 1 ? [...args].pop() : {};
       const methodArgs = diffArgs == 0 ? args : args[0];
       return useInfiniteQuery({
-        queryKey: [...preKeys, classType.name, methodName, methodArgs],
+        queryKey: [
+          classType.name,
+          methodName,
+          INFINIE_KEY,
+          ...preKeys,
+          methodArgs,
+        ],
         queryFn: async ({ signal, pageParam }) => {
           const result = await cf
             .create({ signal })
@@ -256,7 +264,7 @@ export function useClassBaseQueryKey<
   MethodName extends keyof InstanceType<ClassT>,
 >(classType: ClassT, methodName: MethodName): unknown[] {
   const preKeys = useQueryKeys();
-  return [...preKeys, classType.name, methodName];
+  return [classType.name, methodName, ...preKeys];
 }
 export function useClassQueryKey<
   ClassT extends new (...args: any[]) => any,
@@ -267,7 +275,25 @@ export function useClassQueryKey<
   ...args: Parameters<InstanceType<ClassT>[MethodName]>
 ): unknown[] {
   const preKeys = useQueryKeys();
-  return [...preKeys, classType.name, methodName, ...args];
+  return [classType.name, methodName, ...preKeys, ...args];
+}
+export function useClassBaseInfiniteQueryKey<
+  ClassT extends new (...args: any[]) => any,
+  MethodName extends keyof InstanceType<ClassT>,
+>(classType: ClassT, methodName: MethodName): unknown[] {
+  const preKeys = useQueryKeys();
+  return [classType.name, methodName, INFINIE_KEY, ...preKeys];
+}
+export function useClassInfiniteQueryKey<
+  ClassT extends new (...args: any[]) => any,
+  MethodName extends keyof InstanceType<ClassT>,
+>(
+  classType: ClassT,
+  methodName: MethodName,
+  ...args: Parameters<InstanceType<ClassT>[MethodName]>
+): unknown[] {
+  const preKeys = useQueryKeys();
+  return [classType.name, methodName, INFINIE_KEY, ...preKeys, ...args];
 }
 
 export function deepFreeze<T>(value: T): T {
