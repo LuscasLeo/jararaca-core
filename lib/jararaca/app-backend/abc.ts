@@ -8,12 +8,12 @@ export abstract class HttpService {
 export interface HttpBackendRequest {
   method: string;
   path: string;
+  pathParams: { [key: string]: any };
   headers: { [key: string]: string };
   query: { [key: string]: unknown };
   body: unknown;
   responseType?: ResponseType;
 }
-
 export interface HttpBackend {
   request<T>(request: HttpBackendRequest): Promise<T>;
 }
@@ -113,7 +113,11 @@ export const createAxiosHttpBackend = (
     return await axiosInstance
       .request<T>({
         method: request.method,
-        url: request.path,
+        url: Object.entries(request.pathParams).reduce(
+          (url, [key, value]) =>
+            url.replace(`:${key}`, encodeURIComponent(value)),
+          request.path,
+        ),
         headers: {
           ...request.headers,
           ...((request.body instanceof FormData ||
