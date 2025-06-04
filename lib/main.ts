@@ -23,3 +23,4 @@ export * from "./jararaca/websocket/websocket";
 
 // Tools exports
 export * from "./jararaca/tools";
+export * from "./jararaca/utils/identifiables";
