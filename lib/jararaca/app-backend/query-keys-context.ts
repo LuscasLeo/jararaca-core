@@ -1,9 +1,9 @@
 import { createContext, useContext } from "react";
 
-const context = createContext<any[]>([]);
+const QueryKeysContext = createContext<any[]>([]);
 
 export const useQueryKeys = () => {
-  return useContext(context);
+  return useContext(QueryKeysContext);
 };
 
-export const QueryKeysProvider = context.Provider;
+export const QueryKeysProvider = QueryKeysContext.Provider;

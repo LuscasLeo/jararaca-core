@@ -31,16 +31,16 @@ export type AuthContext = {
 };
 
 export function authContextFactory() {
-  const authContext = createContext<AuthContext>({
+  const AuthContext = createContext<AuthContext>({
     loginState: { type: "not-logged" },
     setCredentials: () => {},
   });
 
   return {
     useAuthContext() {
-      return useContext(authContext);
+      return useContext(AuthContext);
     },
-    Provider: authContext.Provider,
+    Provider: AuthContext.Provider,
   };
 }
 

@@ -20,3 +20,6 @@ export * from "./jararaca/third-party/usehooks-ts/use-local-storage";
 // Websocket exports
 export * from "./jararaca/websocket/provider";
 export * from "./jararaca/websocket/websocket";
+
+// Tools exports
+export * from "./jararaca/tools";
