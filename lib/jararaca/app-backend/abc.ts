@@ -41,17 +41,9 @@ function createContextKit<T>(name?: string, defaultValue?: T) {
 export function recursiveCamelToSnakeCase(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map(recursiveCamelToSnakeCase);
-  } else if (
-    typeof obj === "object" &&
-    obj !== null &&
-    "constructor" in obj &&
-    obj.constructor === Object
-  ) {
+  } else if (typeof obj === "object" && obj !== null && "constructor" in obj && obj.constructor === Object) {
     return Object.keys(obj).reduce((acc, key) => {
-      const newKey = key.replace(
-        /[A-Z]/g,
-        (letter) => `_${letter.toLowerCase()}`,
-      );
+      const newKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
       return { ...acc, [newKey]: recursiveCamelToSnakeCase(obj[key]) };
     }, {});
   } else {
@@ -62,16 +54,9 @@ export function recursiveCamelToSnakeCase(obj: any): any {
 export function recursiveSnakeToCamelCase(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map(recursiveSnakeToCamelCase);
-  } else if (
-    typeof obj === "object" &&
-    obj !== null &&
-    "constructor" in obj &&
-    obj.constructor === Object
-  ) {
+  } else if (typeof obj === "object" && obj !== null && "constructor" in obj && obj.constructor === Object) {
     return Object.keys(obj).reduce((acc, key) => {
-      const newKey = key.replace(/_[a-z]/g, (letter) =>
-        letter[1].toUpperCase(),
-      );
+      const newKey = key.replace(/_[a-z]/g, (letter) => letter[1].toUpperCase());
       return { ...acc, [newKey]: recursiveSnakeToCamelCase(obj[key]) };
     }, {});
   } else {
@@ -85,9 +70,7 @@ const oneFileFormData = (file: File) => {
   return formData;
 };
 
-export function setupAxiosCasesTransformerInterceptors(
-  axiosInstance: AxiosInstance,
-) {
+export function setupAxiosCasesTransformerInterceptors(axiosInstance: AxiosInstance) {
   axiosInstance.interceptors.request.use((request) => {
     if (request.data) {
       request.data = recursiveCamelToSnakeCase(request.data);
@@ -105,55 +88,37 @@ export function setupAxiosCasesTransformerInterceptors(
   });
 }
 
-export const createAxiosHttpBackend = (
-  axiosInstance: AxiosInstance,
-  customOptions: AxiosRequestConfig = {},
-): HttpBackend => ({
+export const createAxiosHttpBackend = (axiosInstance: AxiosInstance, customOptions: AxiosRequestConfig = {}): HttpBackend => ({
   async request<T>(request: HttpBackendRequest): Promise<T> {
     return await axiosInstance
       .request<T>({
         method: request.method,
-        url: Object.entries(request.pathParams).reduce(
-          (url, [key, value]) =>
-            url.replace(`:${key}`, encodeURIComponent(value)),
-          request.path,
-        ),
+        url: Object.entries(request.pathParams).reduce((url, [key, value]) => url.replace(`:${key}`, encodeURIComponent(value)), request.path),
         headers: {
           ...request.headers,
-          ...((request.body instanceof FormData ||
-            request.body instanceof File) && {
+          ...((request.body instanceof FormData || request.body instanceof File) && {
             "Content-Type": "multipart/form-data",
           }),
         },
         params: request.query,
-        data:
-          request.body instanceof File
-            ? oneFileFormData(request.body)
-            : request.body,
+        data: request.body instanceof File ? oneFileFormData(request.body) : request.body,
         ...customOptions,
       })
       .then((response) => response.data);
   },
 });
 
-export const { Provider: BackendProvider, useKit: useBackend } =
-  createContextKit<HttpBackend>("backend");
+export const { Provider: BackendProvider, useKit: useBackend } = createContextKit<HttpBackend>("backend");
 
-export const { Provider: AxiosProvider, useKit: useAxios } =
-  createContextKit<AxiosInstance>("axios");
+export const { Provider: AxiosProvider, useKit: useAxios } = createContextKit<AxiosInstance>("axios");
 
-export const { Provider: AxiosConfigProvider, useKit: useAxiosConfig } =
-  createContextKit<AxiosRequestConfig>("axios-config", {});
+export const { Provider: AxiosConfigProvider, useKit: useAxiosConfig } = createContextKit<AxiosRequestConfig>("axios-config", {});
 
 export type ControllerFactory<T> = {
   create(options?: AxiosRequestConfig): T;
 };
 
-export function useControllerFactory<
-  C extends new (
-    ...args: ConstructorParameters<typeof HttpService>
-  ) => InstanceType<C>,
->(controllerKey: C): ControllerFactory<InstanceType<C>> {
+export function useControllerFactory<C extends new (...args: ConstructorParameters<typeof HttpService>) => InstanceType<C>>(controllerKey: C): ControllerFactory<InstanceType<C>> {
   const axiosInstance = useAxios();
   const axiosDefaults = useAxiosConfig();
   return useMemo(
@@ -171,7 +136,7 @@ export function useControllerFactory<
         return prevendUboundThis(new controllerKey(backend) as any);
       },
     }),
-    [axiosDefaults, axiosInstance, controllerKey],
+    [axiosDefaults, axiosInstance, controllerKey]
   );
 }
 
@@ -189,4 +154,20 @@ function prevendUboundThis<T extends object>(instance: T): T {
       return self[prop as keyof T];
     },
   });
+}
+
+export type ResponseType = "arraybuffer" | "blob" | "document" | "json" | "text" | "stream" | "formdata";
+
+export interface HttpBackendRequest {
+  method: string;
+  path: string;
+  pathParams: { [key: string]: any };
+  headers: { [key: string]: string };
+  query: { [key: string]: unknown };
+  body: unknown;
+  responseType?: ResponseType;
+}
+
+export interface HttpBackend {
+  request<T>(request: HttpBackendRequest): Promise<T>;
 }
