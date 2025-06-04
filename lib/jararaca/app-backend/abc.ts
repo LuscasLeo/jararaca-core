@@ -1,4 +1,4 @@
-import { createContext, use, useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 import { AxiosInstance, AxiosRequestConfig } from "axios";
 
@@ -22,7 +22,7 @@ function createContextKit<T>(name?: string, defaultValue?: T) {
   const ThisContext = createContext<T | null>(defaultValue || null);
 
   function useKit() {
-    const backend = use(ThisContext);
+    const backend = useContext(ThisContext);
     if (backend === null) {
       throw new Error("No backend context found for " + name);
     }

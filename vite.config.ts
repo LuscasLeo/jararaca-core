@@ -61,6 +61,6 @@ export default defineConfig({
     // Minify the output for production
     minify: true,
     // Don't generate source maps for production build
-    sourcemap: false,
+    sourcemap: true,
   },
 });
