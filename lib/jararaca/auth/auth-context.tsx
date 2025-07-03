@@ -64,7 +64,7 @@ export function AuthContextProvider({
             config.headers.Authorization = `Bearer ${response.accessToken}`;
             return currentAxios(config);
           } catch (err) {
-            if (isAxiosError(err) && err.response?.status === 401) {
+            if (!isAxiosError(err) || err.response?.status === 401) {
               setCredentials(null);
               enqueueSnackbar("Sua sessão expirou. Faça login novamente.", {
                 variant: "error",
