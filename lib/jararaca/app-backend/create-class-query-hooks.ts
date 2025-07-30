@@ -152,15 +152,21 @@ export function createClassInfiniteQueryHooks<
 
     if (!methosData)
       throw new Error("Method " + methodName + " is not a function");
+    const methodParamLength = Number(methosData.value);
 
     const hookName =
       `use${methodName.charAt(0).toUpperCase() + methodName.slice(1)}Infinite` as keyof PrefixedMethods;
     hooks[hookName] = function useQ(...args: any[]) {
       const cf = useControllerFactory(classType);
       const preKeys = useQueryKeys();
-      const diffArgs = Math.abs(methosData.value - args.length);
-      const options = diffArgs > 1 ? [...args].pop() : {};
-      const methodArgs = diffArgs == 0 ? args : args[0];
+
+      const [options, methodArgs] =
+        args.length > methodParamLength
+          ? [args.pop(), args]
+          : args.length === methodParamLength && !Array.isArray(args[0])
+            ? [{}, args]
+            : [{}, args[0]];
+
       return useInfiniteQuery({
         queryKey: getClassInfiniteQueryKey(
           classType,
@@ -169,10 +175,10 @@ export function createClassInfiniteQueryHooks<
           preKeys,
         ),
         queryFn: async ({ signal, pageParam }) => {
-          const result = await cf
-            .create({ signal })
-            [methodName](...manipulators.manipulateArgs(methodArgs, pageParam));
-          return result;
+          const controller = await cf.create({ signal });
+          const func = controller[methodName];
+          const args = manipulators.manipulateArgs(methodArgs, pageParam);
+          return func(...args);
         },
         getNextPageParam: (...pArgs) =>
           manipulators.getNextPageParam(methodArgs, ...pArgs),
