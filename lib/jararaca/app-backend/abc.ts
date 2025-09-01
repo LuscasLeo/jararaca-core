@@ -125,11 +125,13 @@ export const createAxiosHttpBackend = (
             "Content-Type": "multipart/form-data",
           }),
         },
+        responseType: request.responseType,
         params: request.query,
         data:
           request.body instanceof File
             ? oneFileFormData(request.body)
             : request.body,
+
         ...customOptions,
       })
       .then((response) => response.data);
