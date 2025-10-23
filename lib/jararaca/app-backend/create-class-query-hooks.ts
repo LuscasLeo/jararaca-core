@@ -226,7 +226,7 @@ export function paginationModelByFirstArgPaginationFilter<
   FuncArgs extends [FilterT, ...RestArgs],
 >(): Manipulator<FuncArgs, Paginated<T>, number> {
   return pageNumberManipulator(
-    (args) => args[0].pageSize || 10,
+    (args) => args[0].pageSize ?? 0,
     (result) => result.total,
     (args, pageParam) => {
       const [filter, ...rest] = args;
