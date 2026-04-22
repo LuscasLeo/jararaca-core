@@ -69,12 +69,17 @@ export function createClassQueryHooks<
       const [options, finalArgs] =
         args.length > methodParamLength
           ? [args.pop(), args]
-          : args.length === methodParamLength && !Array.isArray(args[0])
-            ? [{}, args]
-            : [{}, args[0]];
+          : args.length === methodParamLength && Array.isArray(args[0])
+            ? [args.pop(), args]
+            : [{}, args];
 
       return useQuery({
-        queryKey: getClassQueryKey(classType, methodName, finalArgs, preKeys),
+        queryKey: getClassQueryKey(
+          classType,
+          methodName,
+          finalArgs as Parameters<InstanceType<ClassT>[typeof methodName]>,
+          preKeys,
+        ),
         queryFn: async ({ signal }) => {
           const result = await cf.create({ signal })[methodName](...finalArgs);
           return result;
