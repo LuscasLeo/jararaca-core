@@ -5,7 +5,7 @@ import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     dts({
@@ -59,8 +59,8 @@ export default defineConfig({
       },
     },
     // Minify the output for production
-    minify: true,
-    // Don't generate source maps for production build
-    sourcemap: true,
+    minify: mode !== "development",
+    // Generate source maps (inline for dev, external for prod)
+    sourcemap: mode === "development" ? "inline" : true,
   },
-});
+}));

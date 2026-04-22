@@ -4,9 +4,9 @@
   "private": false,
   "description": "A collection of React hooks and utilities",
   "type": "module",
-  "main": "dist/jararaca-core.cjs.js",
-  "module": "dist/jararaca-core.es.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/jararaca-core.cjs.js",
+  "module": "./dist/jararaca-core.es.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,7 +19,8 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc --p ./tsconfig-build.json && vite build",
+    "build": "node scripts/use-dist.js && tsc --p ./tsconfig-build.json && vite build",
+    "build:dev": "node scripts/use-source.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "prepublishOnly": "npm run build",
