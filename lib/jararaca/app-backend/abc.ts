@@ -105,6 +105,13 @@ export function setupAxiosCasesTransformerInterceptors(
   });
 }
 
+const snakeCaseKeysToKebab = (obj: { [key: string]: string }) => {
+  return Object.keys(obj).reduce((acc, key) => {
+    const newKey = key.replace(/_/g, "-");
+    return { ...acc, [newKey]: obj[key] };
+  }, {});
+};
+
 export const createAxiosHttpBackend = (
   axiosInstance: AxiosInstance,
   customOptions: AxiosRequestConfig = {},
@@ -119,7 +126,7 @@ export const createAxiosHttpBackend = (
           request.path,
         ),
         headers: {
-          ...request.headers,
+          ...snakeCaseKeysToKebab(request.headers),
           ...((request.body instanceof FormData ||
             request.body instanceof File) && {
             "Content-Type": "multipart/form-data",

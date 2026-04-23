@@ -66,12 +66,30 @@ export function createClassQueryHooks<
       const cf = useControllerFactory(classType);
       const preKeys = useQueryKeys();
 
-      const [options, finalArgs] =
-        args.length > methodParamLength
-          ? [args.pop(), args]
-          : args.length === methodParamLength && Array.isArray(args[0])
-            ? [args.pop(), args]
-            : [{}, args];
+      // For 2+ params the hook receives args as a single spread array ([arg1, arg2, ...]);
+      // for 0-1 params the arg is passed directly. Options are always the last positional
+      // argument and are optional — presence is detected by comparing args.length to
+      // the number of parameters the underlying method declares.
+      const hasOptions =
+        methodParamLength < 2
+          ? args.length > methodParamLength
+          : args.length > 1;
+      let options: any;
+      let finalArgs: any[];
+
+      if (methodParamLength === 0) {
+        // useMyHook() | useMyHook(options)
+        options = hasOptions ? args[0] : {};
+        finalArgs = [];
+      } else if (methodParamLength === 1) {
+        // useMyHook(arg) | useMyHook(arg, options)
+        options = hasOptions ? args[1] : {};
+        finalArgs = [args[0]];
+      } else {
+        // useMyHook([arg1, arg2, ...]) | useMyHook([arg1, arg2, ...], options)
+        options = hasOptions ? args[1] : {};
+        finalArgs = args[0] ?? [];
+      }
 
       return useQuery({
         queryKey: getClassQueryKey(
