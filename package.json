@@ -1,6 +1,6 @@
 {
   "name": "@jararaca/core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": false,
   "description": "A collection of React hooks and utilities",
   "type": "module",
