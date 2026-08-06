@@ -98,8 +98,15 @@ export function createClassQueryHooks<
           finalArgs as Parameters<InstanceType<ClassT>[typeof methodName]>,
           preKeys,
         ),
-        queryFn: async ({ signal }) => {
-          const result = await cf.create({ signal })[methodName](...finalArgs);
+        // The `signal` of the query function context is deliberately never read.
+        // Touching it marks the query as "abort signal consumed", which makes
+        // react-query abort and revert the in-flight request as soon as the last
+        // observer unmounts. By leaving it untouched the request always runs to
+        // completion and its result is stored in the cache, so remounting reads
+        // the cached value instead of firing the same request again — react-query
+        // already returns the ongoing promise for concurrent fetches of the same key.
+        queryFn: async () => {
+          const result = await cf.create()[methodName](...finalArgs);
           return result;
         },
         ...options,
@@ -189,16 +196,25 @@ export function createClassInfiniteQueryHooks<
           : args.length === methodParamLength && !Array.isArray(args[0])
             ? [{}, args]
             : [{}, args[0]];
-
-      return useInfiniteQuery({
-        queryKey: getClassInfiniteQueryKey(
+      const queryKey = serializeKeys(
+        getClassInfiniteQueryKey(
           classType,
           methodName,
-          methodArgs,
+          methodArgs as Parameters<InstanceType<ClassT>[typeof methodName]>,
           preKeys,
         ),
-        queryFn: async ({ signal, pageParam }) => {
-          const controller = await cf.create({ signal });
+      );
+      return useInfiniteQuery({
+        queryKey,
+        // The `signal` of the query function context is deliberately never read.
+        // Touching it marks the query as "abort signal consumed", which makes
+        // react-query abort and revert the in-flight request as soon as the last
+        // observer unmounts. By leaving it untouched the request always runs to
+        // completion and its result is stored in the cache, so remounting reads
+        // the cached page instead of firing the same request again — react-query
+        // already returns the ongoing promise for concurrent fetches of the same key.
+        queryFn: async ({ pageParam }) => {
+          const controller = cf.create();
           const func = controller[methodName];
           const args = manipulators.manipulateArgs(methodArgs, pageParam);
           return func(...args);
@@ -213,6 +229,20 @@ export function createClassInfiniteQueryHooks<
 
   return hooks;
 }
+
+const serializeKeys = (keys: unknown[]): string[] => {
+  return keys.map((key) => {
+    if (typeof key === "object" && key !== null) {
+      try {
+        return JSON.stringify(key);
+      } catch (e) {
+        console.warn("Failed to serialize key", key, e);
+        return String(key);
+      }
+    }
+    return String(key);
+  });
+};
 
 export interface Paginated<PAGINATED_T> {
   items: Array<PAGINATED_T>;
