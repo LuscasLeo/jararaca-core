@@ -213,8 +213,8 @@ export function createClassInfiniteQueryHooks<
         // completion and its result is stored in the cache, so remounting reads
         // the cached page instead of firing the same request again — react-query
         // already returns the ongoing promise for concurrent fetches of the same key.
-        queryFn: async ({ pageParam }) => {
-          const controller = cf.create();
+        queryFn: async ({ signal, pageParam }) => {
+          const controller = cf.create({ signal });
           const func = controller[methodName];
           const args = manipulators.manipulateArgs(methodArgs, pageParam);
           return func(...args);
