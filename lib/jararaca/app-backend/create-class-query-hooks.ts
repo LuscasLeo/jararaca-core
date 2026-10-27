@@ -105,8 +105,8 @@ export function createClassQueryHooks<
         // completion and its result is stored in the cache, so remounting reads
         // the cached value instead of firing the same request again — react-query
         // already returns the ongoing promise for concurrent fetches of the same key.
-        queryFn: async () => {
-          const result = await cf.create()[methodName](...finalArgs);
+        queryFn: async ({ signal }) => {
+          const result = await cf.create({ signal })[methodName](...finalArgs);
           return result;
         },
         ...options,
