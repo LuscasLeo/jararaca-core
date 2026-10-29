@@ -2,5 +2,9 @@
     "extends": "./tsconfig.lib.json",
     "include": [
         "lib"
+    ],
+    "exclude": [
+        "lib/**/*.test.ts",
+        "lib/**/*.test.tsx"
     ]
 }

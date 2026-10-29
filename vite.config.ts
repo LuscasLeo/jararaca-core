@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     dts({
       include: ["lib/**/*"],
-      exclude: ["src/**/*", "node_modules/**/*"],
+      exclude: ["src/**/*", "node_modules/**/*", "lib/**/*.test.*"],
       outDir: "dist",
       insertTypesEntry: true, // Create a .d.ts entry file
       copyDtsFiles: true, // Copy .d.ts declaration files without modification
