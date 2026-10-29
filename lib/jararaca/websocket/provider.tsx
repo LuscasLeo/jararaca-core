@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -13,6 +14,7 @@ import { Map, Set } from "immutable";
 import {
   WebSocketConnectionContext,
   WebSocketConnectionStatus,
+  WebSocketLifecycleEvents,
 } from "./websocket";
 import { recursiveSnakeToCamelCase } from "../app-backend/abc";
 
@@ -22,15 +24,26 @@ export type WebSocketProviderProps<T> = {
   Provider: Provider<WebSocketConnectionContext<T> | null>;
 };
 
+type LifecycleEmit = <E extends keyof WebSocketLifecycleEvents>(
+  event: E,
+  info: WebSocketLifecycleEvents[E],
+) => void;
+
 function useWebsocket({
   url,
   connectionQueryParams,
   onMessage,
+  emitLifecycle,
 }: {
   url: string;
   connectionQueryParams: URLSearchParams;
   onMessage: (event: MessageEvent) => void;
+  emitLifecycle: LifecycleEmit;
 }) {
+  // Connection history for this provider mount (survives socket re-creation).
+  const hasConnectedRef = useRef(false);
+  // Sockets that closed before opening since the last successful open.
+  const failedAttemptsRef = useRef(0);
   const [connectionStatus, setConnectionStatus] =
     useState<WebSocketConnectionStatus>("idle");
 
@@ -43,11 +56,20 @@ function useWebsocket({
     const sws = new WebSocket(`${url}?${connectionQueryParams.toString()}`);
     sws.binaryType = "arraybuffer";
     requestAnimationFrame(() => setConnectionStatus("connecting"));
+    let opened = false;
 
     sws.addEventListener(
       "open",
       () => {
+        opened = true;
+        const info = {
+          isReconnect: hasConnectedRef.current,
+          attempt: failedAttemptsRef.current + 1,
+        };
+        hasConnectedRef.current = true;
+        failedAttemptsRef.current = 0;
         setConnectionStatus("connected");
+        emitLifecycle("connected", info);
       },
       {
         signal: controller.signal,
@@ -56,8 +78,19 @@ function useWebsocket({
 
     sws.addEventListener(
       "close",
-      () => {
+      (event) => {
         setConnectionStatus("closed");
+        // Failed reconnect attempts also fire "close"; only report a drop
+        // of a connection that was actually open.
+        if (!opened) {
+          failedAttemptsRef.current += 1;
+        } else {
+          emitLifecycle("disconnected", {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean,
+          });
+        }
       },
       {
         signal: controller.signal,
@@ -70,7 +103,7 @@ function useWebsocket({
       controller.abort();
       sws.close();
     };
-  }, [connectionQueryParams, url, pending]);
+  }, [connectionQueryParams, url, pending, emitLifecycle]);
 
   useEffect(() => {
     if (connectionStatus === "closed") {
@@ -123,10 +156,36 @@ export function WebSocketProvider<T extends { [key: string]: any }>({
     [eventMap],
   );
 
+  // Lifecycle handlers live in a ref: (un)subscribing never re-renders.
+  const lifecycleHandlersRef = useRef<{
+    [E in keyof WebSocketLifecycleEvents]: globalThis.Set<
+      (info: WebSocketLifecycleEvents[E]) => void
+    >;
+  }>({ connected: new globalThis.Set(), disconnected: new globalThis.Set() });
+
+  const emitLifecycle = useCallback<LifecycleEmit>((event, info) => {
+    const handlers = lifecycleHandlersRef.current[event] as globalThis.Set<
+      (info: WebSocketLifecycleEvents[typeof event]) => void
+    >;
+    [...handlers].forEach((handler) => handler(info));
+  }, []);
+
+  const subscribeLifecycle = useCallback(function subscribeLifecycle<
+    E extends keyof WebSocketLifecycleEvents,
+  >(event: E, handler: (info: WebSocketLifecycleEvents[E]) => void) {
+    const handlers = lifecycleHandlersRef.current[event] as globalThis.Set<
+      (info: WebSocketLifecycleEvents[E]) => void
+    >;
+    handlers.add(handler);
+    return () => {
+      handlers.delete(handler);
+    };
+  }, []);
+
   const { connectionStatus } = useWebsocket(
     useMemo(
-      () => ({ url, connectionQueryParams, onMessage }),
-      [url, connectionQueryParams, onMessage],
+      () => ({ url, connectionQueryParams, onMessage, emitLifecycle }),
+      [url, connectionQueryParams, onMessage, emitLifecycle],
     ),
   );
 
@@ -158,8 +217,13 @@ export function WebSocketProvider<T extends { [key: string]: any }>({
   );
 
   const contextValue = useMemo(
-    () => ({ registerHandler, unRegisterHandler, connectionStatus }),
-    [connectionStatus, registerHandler, unRegisterHandler],
+    () => ({
+      registerHandler,
+      unRegisterHandler,
+      connectionStatus,
+      subscribeLifecycle,
+    }),
+    [connectionStatus, registerHandler, unRegisterHandler, subscribeLifecycle],
   );
 
   return <WebSocketContext value={contextValue}>{children}</WebSocketContext>;
